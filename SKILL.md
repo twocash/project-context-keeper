@@ -33,6 +33,13 @@ This skill **automatically activates** when:
 - User references Git operations (commit, push, branch, merge, PR)
 - Conversation involves modifying code files in a tracked project
 
+### Meta-Awareness Trigger (Special Case)
+- **User is working ON project-context-keeper itself**
+- Detected by: Path contains "project-context-keeper", explicit skill name mention, or editing SKILL.md/README.md files in this repo
+- **Behavior:** Always offer to create/load context, even on first use
+- **Rationale:** Dogfooding - this skill should track its own development
+- **Message:** Frame as "Let's dogfood this! Should I create a context file to track our work on project-context-keeper?"
+
 ### Secondary Triggers (Offer Context Load)
 - User asks about project status: "where are we?", "what's next?", "what did we do last time?"
 - User mentions technical debt, blockers, or architectural decisions
@@ -48,8 +55,10 @@ This skill **automatically activates** when:
 ### Never Auto-Activate On
 - General technical questions unrelated to active projects
 - Research or learning tasks
-- Reading documentation
+- Reading documentation (UNLESS it's project-context-keeper's own docs)
 - Casual conversation about coding
+
+**Note:** Even when a project has no context file yet, Claude should still offer to create one for the first session if triggers are detected. The meta-awareness trigger ensures project-context-keeper always tracks its own development.
 
 ---
 
@@ -78,15 +87,19 @@ This skill **automatically activates** when:
 
 **AI Actions:**
 1. Detect project reference or path pattern
-2. Check for `devbridge-context.md` in likely locations
-3. If found: Load silently and display condensed status
-4. If not found: Ask "Should I track context for this project?"
+2. **Special case:** If working on project-context-keeper itself, skip to step 4
+3. Check for `devbridge-context.md` in likely locations
+4. If found: Load silently and display condensed status
+5. If not found: 
+   - **For project-context-keeper:** "Let's dogfood this! Should I create a context file to track our work on project-context-keeper?"
+   - **For other projects:** "Should I track context for this project?"
 
 **Display (Condensed):**
 ```
-📊 [Project Name] • [state] • Last: [X days ago]
+📊 [Project Name] • [state_emoji] [state] • Last: [X days ago]
 ✅ Last completed: [summary]
 🎯 Next: [next_action]
+⚠️  Blockers: [if any, else omit this line]
 ```
 
 Then proceed with user's request.
@@ -238,6 +251,75 @@ Automation Summary:
 Recommendations:
 - [Actionable insight based on patterns]
 ```
+
+---
+
+### 5a. Quick Status: `context: status`
+
+**User:** `context: status` (minimal view) or `context: status --full` (complete view)
+
+**AI Actions:**
+Parse context file and display current state.
+
+**Display (Default - Minimal):**
+```
+📊 [Project Name]
+
+State: [state_emoji] [state]
+Last: [X days/hours ago]
+✅ Done: [last completed summary, truncated to ~50 chars]
+🎯 Next: [next_action]
+⚠️  Blockers: [active_blockers if any, else "None"]
+```
+
+**Display (Full - With --full flag):**
+```
+📊 [Project Name] - Complete Status
+
+Current State:
+├─ State: [state_emoji] [state]
+├─ Last session: [X days/hours ago] (Session [N])
+├─ Duration: [X.X hours]
+└─ Type: [human_interactive/automation]
+
+Progress:
+✅ Last completed: [full summary]
+🎯 Next action: [full next_action]
+
+Active Context:
+├─ Files in progress: [count]
+│  └─ [file list or "None"]
+├─ Blockers: [count]
+│  └─ [blocker list with details or "None"]
+└─ Automation: [status if active, else "Not running"]
+
+Recent Activity (last 3 sessions):
+1. Session N: [summary] ([duration])
+2. Session N-1: [summary] ([duration])
+3. Session N-2: [summary] ([duration])
+
+Quick Stats:
+- Total sessions: N
+- Total checkpoints: N
+- Avg session: X.X hours
+- Days active: N
+```
+
+**State Emojis:**
+- ready_to_start: 🆕
+- in_progress: 🔄
+- automation_running: 🤖
+- automation_paused: ⏸️
+- needs_testing: 🧪
+- blocked: ⚠️
+- ready_to_deploy: 🚀
+- prod_deployed: ✅
+
+**Notes:**
+- Minimal view emphasizes blockers (if any exist)
+- Full view provides complete project snapshot
+- Use minimal by default to reduce noise
+- Full view useful for status reports or context refresh
 
 ---
 
@@ -494,6 +576,14 @@ automation_status:
 4. **Document decisions:** Include WHY and what alternatives were rejected
 5. **Track blocker time:** Helps identify patterns
 6. **Write notes for "future you":** What would help in a month?
+7. **Use minimal status by default:** `context: status` for quick check, `context: status --full` when you need complete picture
+
+### For Status Checks
+
+1. **Default to minimal:** Reduces noise, highlights what matters
+2. **Use --full for handoffs:** When briefing someone or taking break
+3. **Check status before starting:** Refreshes context without full history
+4. **Blockers always surface:** Minimal view prominently shows active blockers
 
 ### For Timeline Management
 
@@ -573,6 +663,21 @@ This ensures automation follows established patterns.
 
 ## Advanced Features
 
+### Meta-Awareness (v3.1)
+
+**Dogfooding Detection:**
+When working on project-context-keeper itself, Claude recognizes this and proactively offers context tracking even if no context file exists yet. This ensures the skill tracks its own development and provides real-world testing.
+
+**Detection Signals:**
+- Repository path contains "project-context-keeper"
+- User mentions editing SKILL.md or README.md in this repo
+- Explicit mention of "project-context-keeper" in development context
+
+**Behavior:**
+- Always offers to create context on first use (no passive waiting)
+- Frames prompt as dogfooding opportunity
+- Encourages capturing design decisions while fresh
+
 ### Multi-Project Detection (v3)
 
 AI maintains internal cache of active projects:
@@ -651,6 +756,82 @@ This session had 3 checkpoints:
 Overall, what was the main accomplishment?
 
 [Continue with standard save interview...]
+```
+
+### Example 4: Meta-Awareness Trigger (Dogfooding)
+
+**User:** "Let's work on adding features to project-context-keeper"
+
+**Claude:**
+```
+Let's dogfood this! Should I create a context file to track our work on project-context-keeper?
+
+This will help us:
+- Track our own development decisions
+- Test auto-activation in practice
+- Capture improvements we identify while building
+
+[Yes/No]
+```
+
+**User:** "Yes"
+
+**Claude:**
+```
+✅ Context tracking started for project-context-keeper
+
+I'll guide you through initial setup...
+
+[Continue with standard start interview...]
+```
+
+### Example 5: Tiered Status Display
+
+**User:** "context: status"
+
+**Claude:**
+```
+📊 Project Context Keeper
+
+State: 🔄 in_progress
+Last: 30 minutes ago
+✅ Done: Implemented meta-awareness trigger for dogfooding
+🎯 Next: Add status display enhancements with tiered views
+⚠️  Blockers: None
+```
+
+**User:** "context: status --full"
+
+**Claude:**
+```
+📊 Project Context Keeper - Complete Status
+
+Current State:
+├─ State: 🔄 in_progress
+├─ Last session: 30 minutes ago (Session 2)
+├─ Duration: 0.5 hours
+└─ Type: human_interactive
+
+Progress:
+✅ Last completed: Implemented meta-awareness trigger (#1 from roadmap). Added special-case detection for project-context-keeper recognizing itself. Updated trigger logic, workflows, advanced features, examples. Committed with conventional commit message.
+🎯 Next action: Continue with #3 (Status Display Enhancements) and #2 (Checkpoint UX Improvements) - both affect daily usage quality
+
+Active Context:
+├─ Files in progress: 2
+│  └─ SKILL.md, devbridge-context.md
+├─ Blockers: 0
+│  └─ None
+└─ Automation: Not running
+
+Recent Activity (last 3 sessions):
+1. Session 2: Meta-awareness trigger (0.5 hours)
+2. Session 1: v3 merge and release (0.75 hours)
+
+Quick Stats:
+- Total sessions: 2
+- Total checkpoints: 1
+- Avg session: 0.6 hours
+- Days active: 1
 ```
 
 ---
