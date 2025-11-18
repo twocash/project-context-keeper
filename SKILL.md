@@ -33,6 +33,13 @@ This skill **automatically activates** when:
 - User references Git operations (commit, push, branch, merge, PR)
 - Conversation involves modifying code files in a tracked project
 
+### Meta-Awareness Trigger (Special Case)
+- **User is working ON project-context-keeper itself**
+- Detected by: Path contains "project-context-keeper", explicit skill name mention, or editing SKILL.md/README.md files in this repo
+- **Behavior:** Always offer to create/load context, even on first use
+- **Rationale:** Dogfooding - this skill should track its own development
+- **Message:** Frame as "Let's dogfood this! Should I create a context file to track our work on project-context-keeper?"
+
 ### Secondary Triggers (Offer Context Load)
 - User asks about project status: "where are we?", "what's next?", "what did we do last time?"
 - User mentions technical debt, blockers, or architectural decisions
@@ -48,8 +55,10 @@ This skill **automatically activates** when:
 ### Never Auto-Activate On
 - General technical questions unrelated to active projects
 - Research or learning tasks
-- Reading documentation
+- Reading documentation (UNLESS it's project-context-keeper's own docs)
 - Casual conversation about coding
+
+**Note:** Even when a project has no context file yet, Claude should still offer to create one for the first session if triggers are detected. The meta-awareness trigger ensures project-context-keeper always tracks its own development.
 
 ---
 
@@ -78,9 +87,12 @@ This skill **automatically activates** when:
 
 **AI Actions:**
 1. Detect project reference or path pattern
-2. Check for `devbridge-context.md` in likely locations
-3. If found: Load silently and display condensed status
-4. If not found: Ask "Should I track context for this project?"
+2. **Special case:** If working on project-context-keeper itself, skip to step 4
+3. Check for `devbridge-context.md` in likely locations
+4. If found: Load silently and display condensed status
+5. If not found: 
+   - **For project-context-keeper:** "Let's dogfood this! Should I create a context file to track our work on project-context-keeper?"
+   - **For other projects:** "Should I track context for this project?"
 
 **Display (Condensed):**
 ```
@@ -573,6 +585,21 @@ This ensures automation follows established patterns.
 
 ## Advanced Features
 
+### Meta-Awareness (v3.1)
+
+**Dogfooding Detection:**
+When working on project-context-keeper itself, Claude recognizes this and proactively offers context tracking even if no context file exists yet. This ensures the skill tracks its own development and provides real-world testing.
+
+**Detection Signals:**
+- Repository path contains "project-context-keeper"
+- User mentions editing SKILL.md or README.md in this repo
+- Explicit mention of "project-context-keeper" in development context
+
+**Behavior:**
+- Always offers to create context on first use (no passive waiting)
+- Frames prompt as dogfooding opportunity
+- Encourages capturing design decisions while fresh
+
 ### Multi-Project Detection (v3)
 
 AI maintains internal cache of active projects:
@@ -651,6 +678,33 @@ This session had 3 checkpoints:
 Overall, what was the main accomplishment?
 
 [Continue with standard save interview...]
+```
+
+### Example 4: Meta-Awareness Trigger (Dogfooding)
+
+**User:** "Let's work on adding features to project-context-keeper"
+
+**Claude:**
+```
+Let's dogfood this! Should I create a context file to track our work on project-context-keeper?
+
+This will help us:
+- Track our own development decisions
+- Test auto-activation in practice
+- Capture improvements we identify while building
+
+[Yes/No]
+```
+
+**User:** "Yes"
+
+**Claude:**
+```
+✅ Context tracking started for project-context-keeper
+
+I'll guide you through initial setup...
+
+[Continue with standard start interview...]
 ```
 
 ---
