@@ -9,23 +9,50 @@
 
 ## Current State
 
-**Status:** ready_for_release  
-**Version:** v3.0  
-**Branch:** v3-timeline (merged with main's v2, ready to push)
+**Status:** in_progress  
+**Version:** v3.1-dev  
+**Branch:** v3-timeline
 
-**Last Completed (Session 1 - Nov 17, 2025):**
-- Resolved merge conflict between v2 (main) and v3 (feature branch)
-- v3 supersedes v2 with auto-activation, checkpoints, and smarter triggers
-- Updated README.md to reflect v3 quick start and philosophy
-- Successfully merged using `-X ours` strategy to preserve v3 enhancements
-- Cleaned up merge artifacts and confirmed clean working tree
+**Last Completed (Session 2 - Nov 17, 2025):**
+- Implemented meta-awareness trigger for dogfooding detection
+- Skill now recognizes when it's working on itself and proactively offers tracking
+- Added special-case logic to trigger section, workflow, advanced features
+- Committed with feat: message and issue reference
 
 **Next Priority:**
-Test auto-activation in real usage and refine trigger detection patterns based on observed behavior
+Continue with #3 (Status Display Enhancements) and #2 (Checkpoint UX Improvements) - both affect daily usage quality
 
 ---
 
 ## Timeline
+
+### Session 2: 2025-11-17 (30min)
+**Completed:**
+- Implemented meta-awareness trigger (#1 from roadmap)
+- Added special-case detection: project-context-keeper recognizes itself
+- Updated trigger logic to offer tracking even without existing context file
+- Documented in: triggers section, workflows, advanced features, examples
+- Committed changes with conventional commit message
+
+**Decisions:**
+- Version bump to v3.1-dev for this feature addition
+- Framed trigger as "dogfooding" to emphasize testing value
+- Detection signals: path contains "project-context-keeper", SKILL.md/README.md edits, explicit mention
+
+**Files Touched:**
+- SKILL.md (58 additions, 4 deletions)
+- devbridge-context.md (this checkpoint)
+
+**Git State:**
+- Commit: efda6ee "feat: Add meta-awareness trigger for dogfooding"
+- Branch: v3-timeline (2 commits ahead of origin)
+
+**Notes:**
+- Successfully dogfooded the feature while building it
+- Context file now exists, so future sessions will auto-load
+- Next: Status display enhancements (#3) and checkpoint UX (#2)
+
+---
 
 ### Session 1: 2025-11-17 (45min)
 **Completed:**
@@ -63,10 +90,11 @@ Test auto-activation in real usage and refine trigger detection patterns based o
 
 ## Known Issues & Opportunities
 
-### Auto-Activation Gaps
+### ✅ Auto-Activation Gaps - RESOLVED in v3.1
 **Issue:** Skill didn't proactively offer context tracking when we started working on project-context-keeper itself  
-**Why:** Trigger logic checks for context file existence before offering to create one  
-**Opportunity:** Add "meta" trigger - if working ON the project-context-keeper skill itself, always offer tracking
+**Solution:** Added meta-awareness trigger that detects self-referential work and always offers tracking  
+**Implementation:** Special-case logic in triggers, workflows, and examples  
+**Commit:** efda6ee (Session 2, Nov 17)
 
 ### Trigger Pattern Refinement Needs
 **Issue:** No real-world usage data yet on which trigger phrases work best  
