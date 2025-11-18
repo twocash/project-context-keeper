@@ -96,9 +96,10 @@ This skill **automatically activates** when:
 
 **Display (Condensed):**
 ```
-📊 [Project Name] • [state] • Last: [X days ago]
+📊 [Project Name] • [state_emoji] [state] • Last: [X days ago]
 ✅ Last completed: [summary]
 🎯 Next: [next_action]
+⚠️  Blockers: [if any, else omit this line]
 ```
 
 Then proceed with user's request.
@@ -250,6 +251,75 @@ Automation Summary:
 Recommendations:
 - [Actionable insight based on patterns]
 ```
+
+---
+
+### 5a. Quick Status: `context: status`
+
+**User:** `context: status` (minimal view) or `context: status --full` (complete view)
+
+**AI Actions:**
+Parse context file and display current state.
+
+**Display (Default - Minimal):**
+```
+📊 [Project Name]
+
+State: [state_emoji] [state]
+Last: [X days/hours ago]
+✅ Done: [last completed summary, truncated to ~50 chars]
+🎯 Next: [next_action]
+⚠️  Blockers: [active_blockers if any, else "None"]
+```
+
+**Display (Full - With --full flag):**
+```
+📊 [Project Name] - Complete Status
+
+Current State:
+├─ State: [state_emoji] [state]
+├─ Last session: [X days/hours ago] (Session [N])
+├─ Duration: [X.X hours]
+└─ Type: [human_interactive/automation]
+
+Progress:
+✅ Last completed: [full summary]
+🎯 Next action: [full next_action]
+
+Active Context:
+├─ Files in progress: [count]
+│  └─ [file list or "None"]
+├─ Blockers: [count]
+│  └─ [blocker list with details or "None"]
+└─ Automation: [status if active, else "Not running"]
+
+Recent Activity (last 3 sessions):
+1. Session N: [summary] ([duration])
+2. Session N-1: [summary] ([duration])
+3. Session N-2: [summary] ([duration])
+
+Quick Stats:
+- Total sessions: N
+- Total checkpoints: N
+- Avg session: X.X hours
+- Days active: N
+```
+
+**State Emojis:**
+- ready_to_start: 🆕
+- in_progress: 🔄
+- automation_running: 🤖
+- automation_paused: ⏸️
+- needs_testing: 🧪
+- blocked: ⚠️
+- ready_to_deploy: 🚀
+- prod_deployed: ✅
+
+**Notes:**
+- Minimal view emphasizes blockers (if any exist)
+- Full view provides complete project snapshot
+- Use minimal by default to reduce noise
+- Full view useful for status reports or context refresh
 
 ---
 
@@ -506,6 +576,14 @@ automation_status:
 4. **Document decisions:** Include WHY and what alternatives were rejected
 5. **Track blocker time:** Helps identify patterns
 6. **Write notes for "future you":** What would help in a month?
+7. **Use minimal status by default:** `context: status` for quick check, `context: status --full` when you need complete picture
+
+### For Status Checks
+
+1. **Default to minimal:** Reduces noise, highlights what matters
+2. **Use --full for handoffs:** When briefing someone or taking break
+3. **Check status before starting:** Refreshes context without full history
+4. **Blockers always surface:** Minimal view prominently shows active blockers
 
 ### For Timeline Management
 
@@ -705,6 +783,55 @@ This will help us:
 I'll guide you through initial setup...
 
 [Continue with standard start interview...]
+```
+
+### Example 5: Tiered Status Display
+
+**User:** "context: status"
+
+**Claude:**
+```
+📊 Project Context Keeper
+
+State: 🔄 in_progress
+Last: 30 minutes ago
+✅ Done: Implemented meta-awareness trigger for dogfooding
+🎯 Next: Add status display enhancements with tiered views
+⚠️  Blockers: None
+```
+
+**User:** "context: status --full"
+
+**Claude:**
+```
+📊 Project Context Keeper - Complete Status
+
+Current State:
+├─ State: 🔄 in_progress
+├─ Last session: 30 minutes ago (Session 2)
+├─ Duration: 0.5 hours
+└─ Type: human_interactive
+
+Progress:
+✅ Last completed: Implemented meta-awareness trigger (#1 from roadmap). Added special-case detection for project-context-keeper recognizing itself. Updated trigger logic, workflows, advanced features, examples. Committed with conventional commit message.
+🎯 Next action: Continue with #3 (Status Display Enhancements) and #2 (Checkpoint UX Improvements) - both affect daily usage quality
+
+Active Context:
+├─ Files in progress: 2
+│  └─ SKILL.md, devbridge-context.md
+├─ Blockers: 0
+│  └─ None
+└─ Automation: Not running
+
+Recent Activity (last 3 sessions):
+1. Session 2: Meta-awareness trigger (0.5 hours)
+2. Session 1: v3 merge and release (0.75 hours)
+
+Quick Stats:
+- Total sessions: 2
+- Total checkpoints: 1
+- Avg session: 0.6 hours
+- Days active: 1
 ```
 
 ---
