@@ -1,26 +1,64 @@
 ---
 name: project-context-keeper
-description: Manages project context across coding sessions with progressive timeline tracking. Loads, updates, and saves project state with full session history. Supports automation integration with continuous-claude.
+description: Manages project context across coding sessions with progressive timeline tracking. Auto-activates for any GitHub/coding work. Loads, updates, and saves project state with full session history. Supports incremental saves and automation integration.
 license: (internal)
 ---
 
-# Project Context Keeper v2
+# Project Context Keeper v3
 
-Progressive context management with timeline tracking. Preserves decision history, tracks velocity, and integrates with automation workflows.
+Progressive context management with timeline tracking and auto-activation. Preserves decision history, tracks velocity, enables incremental saves, and integrates with automation workflows.
 
 ## Core Philosophy
 
 1. **Timeline, Not Snapshot:** Sessions append to history (nothing is lost)
-2. **Decision Context:** Capture WHY, not just WHAT
-3. **Human-Led Updates:** User provides summaries, AI prompts and structures
-4. **Schema-Driven:** Strict structure for consistency
-5. **Token-Efficient:** Character limits on all fields
+2. **Auto-Activated:** Triggers on any GitHub/coding work without explicit command
+3. **Incremental Saves:** Save individual features/milestones within a session
+4. **Decision Context:** Capture WHY, not just WHAT
+5. **Human-Led Updates:** User provides summaries, AI prompts and structures
+6. **Schema-Driven:** Strict structure for consistency
+7. **Token-Efficient:** Character limits on all fields
+
+---
+
+## Auto-Activation Triggers
+
+This skill **automatically activates** when:
+
+### Primary Triggers (Always Load Context)
+- User mentions working on code in GitHub repositories
+- User references a project by name that has a context file
+- User asks to continue work from previous session
+- User mentions file paths in `/c/GitHub/` or similar dev directories
+- User discusses implementing features, fixing bugs, or refactoring
+- User references Git operations (commit, push, branch, merge, PR)
+- Conversation involves modifying code files in a tracked project
+
+### Secondary Triggers (Offer Context Load)
+- User asks about project status: "where are we?", "what's next?", "what did we do last time?"
+- User mentions technical debt, blockers, or architectural decisions
+- Session appears to be continuing previous development work
+
+### Incremental Save Triggers (Auto-Prompt)
+- Feature completion is confirmed during active session
+- User says "that works", "feature complete", "milestone reached"
+- Major decision point is reached
+- Blocker is resolved
+- User explicitly says "save this" or "checkpoint"
+
+### Never Auto-Activate On
+- General technical questions unrelated to active projects
+- Research or learning tasks
+- Reading documentation
+- Casual conversation about coding
+
+---
 
 ## Commands
 
 ### Primary
-* `context: start` - Load context, show current state and recent history
+* `context: start` - Explicitly load context (auto-triggered in most cases)
 * `context: save` - End session, append to timeline
+* `context: checkpoint` - Save incremental progress without ending session
 * `context: history` - View full timeline (last 10 sessions by default)
 * `context: insights` - Show velocity metrics and patterns
 * `context: automate` - Generate continuous-claude command from next_action
@@ -28,12 +66,34 @@ Progressive context management with timeline tracking. Preserves decision histor
 ### Utility
 * `context: status` - Quick view of current state only
 * `context: resume-automation` - Check automation progress
+* `context: skip` - Explicitly tell Claude not to load context for this session
 
 ---
 
 ## Workflows
 
-### 1. Start Session: `context: start`
+### 0. Auto-Start (New in v3)
+
+**When Triggered:** User mentions GitHub work without explicit command
+
+**AI Actions:**
+1. Detect project reference or path pattern
+2. Check for `devbridge-context.md` in likely locations
+3. If found: Load silently and display condensed status
+4. If not found: Ask "Should I track context for this project?"
+
+**Display (Condensed):**
+```
+📊 [Project Name] • [state] • Last: [X days ago]
+✅ Last completed: [summary]
+🎯 Next: [next_action]
+```
+
+Then proceed with user's request.
+
+---
+
+### 1. Explicit Start: `context: start`
 
 **User:** `context: start`
 
@@ -64,23 +124,51 @@ Initialize with Session 1 in timeline.
 
 ---
 
-### 2. Save Session: `context: save`
+### 2. Incremental Save: `context: checkpoint` (New in v3)
+
+**User:** `context: checkpoint` or auto-triggered on feature completion
+
+**AI Actions:**
+Quick interview (2-3 questions):
+
+1. "What just got completed?"
+2. "Any decision or blocker to note?"
+3. "Still working toward: [current next_action]?"
+
+Then:
+- Append mini-entry to current session's timeline
+- Update files_touched list
+- Keep session active (don't end it)
+- Confirm: "✅ Checkpoint saved. Session continues."
+
+**Mini-Entry Format:**
+```markdown
+#### Checkpoint: [Time]
+- Completed: [summary]
+- Files: [list]
+- Decision: [if any]
+```
+
+---
+
+### 3. Save Session: `context: save`
 
 **User:** `context: save`
 
 **AI Actions:**
 Interview for updates (one question at a time):
 
-1. "What was completed this session? (Be specific)"
+1. "What was completed this session? (Include all checkpoints)"
 2. "Any key decisions? (Decision / Rationale / Alternatives)"
 3. "Any blockers resolved? (What / How / Time spent)"
 4. "Next priority for next session?"
 5. "Current state? (in_progress/needs_testing/ready_to_deploy/blocked)"
 6. "Session duration in hours?"
-7. "Files touched?"
+7. "Files touched?" (pre-filled from checkpoints if any)
 8. [Detect Git commits if possible]
 
 Then:
+- Consolidate any checkpoint entries into session summary
 - Update "Current State" section (overwrite)
 - Append new session to "Timeline" section (preserve)
 - Compute and update "Insights" section
@@ -89,7 +177,7 @@ Then:
 
 ---
 
-### 3. View History: `context: history`
+### 4. View History: `context: history`
 
 **User:** `context: history` (or `context: history --last 5`)
 
@@ -101,6 +189,7 @@ Parse timeline, display formatted:
 
 Session N • [Date], [Time] • [Type] • [Duration]
 ├─ Completed: [summary]
+├─ Checkpoints: [count] (if any)
 ├─ Decisions: [if any]
 ├─ Resolved: [if any]
 ├─ Files: [count] files
@@ -117,7 +206,7 @@ Session N • [Date], [Time] • [Type] • [Duration]
 
 ---
 
-### 4. Show Insights: `context: insights`
+### 5. Show Insights: `context: insights`
 
 **User:** `context: insights`
 
@@ -131,6 +220,7 @@ Velocity:
 - Sessions per week: X.X
 - Avg session: X.X hours
 - Features completed: N
+- Checkpoints per session: X.X (indicates granularity)
 
 Blocker Analysis:
 1. [Blocker type]: N occurrences (avg Xmin to resolve)
@@ -151,7 +241,7 @@ Recommendations:
 
 ---
 
-### 5. Trigger Automation: `context: automate`
+### 6. Trigger Automation: `context: automate`
 
 **User:** `context: automate`
 
@@ -197,7 +287,7 @@ Ready to run?
 
 ---
 
-### 6. Check Automation: `context: resume-automation`
+### 7. Check Automation: `context: resume-automation`
 
 **User:** `context: resume-automation`
 
@@ -245,6 +335,7 @@ local_path: [path]
 created: [ISO timestamp]
 last_updated: [ISO timestamp]
 sessions_total: [count]
+checkpoints_total: [count]
 
 ## Current State
 
@@ -264,9 +355,17 @@ automation_status:
 **Type:** Human Interactive | Automation  
 **Duration:** X.X hours  
 **State Change:** [from] → [to]
+**Checkpoints:** [count] (if any)
 
 **Completed:**
 [What was accomplished]
+
+#### Checkpoint: [Time]
+- Completed: [feature summary]
+- Files: [list]
+- Decision: [if any]
+
+[Additional checkpoints...]
 
 **Key Decisions:**
 - [Decision]: [Rationale]
@@ -297,6 +396,7 @@ automation_status:
 - Days active: N
 - Avg session: X.X hours
 - Features: N
+- Checkpoints: N
 
 **Common Blockers:**
 - [Type]: N occurrences
@@ -334,6 +434,14 @@ automation_status:
   "session_id": "Session N",
   "session_type": "human_interactive | automation | code_review",
   "duration_hours": "number",
+  "checkpoints": [
+    {
+      "timestamp": "ISO 8601 time only",
+      "completed": "string (max 150 chars)",
+      "files": ["path", "..."],
+      "decision": "string (max 150 chars, optional)"
+    }
+  ],
   "state_change": {"from": "state", "to": "state"},
   "completed": "string (max 300 chars)",
   "key_decisions": [
@@ -367,6 +475,7 @@ automation_status:
 - Project name: 50 chars
 - Goal: 120 chars
 - Completed summary: 300 chars
+- Checkpoint completed: 150 chars
 - Next action: 200 chars
 - Notes for next: 300 chars
 - Decision text: 150 chars each
@@ -379,11 +488,12 @@ automation_status:
 
 ### For Users
 
-1. **Be specific in completions:** "Built auth" → "Built JWT auth with refresh token rotation"
-2. **Document decisions:** Include WHY and what alternatives were rejected
-3. **Track blocker time:** Helps identify patterns
-4. **Estimate duration:** Enables velocity calculations
-5. **Write notes for "future you":** What would help in a month?
+1. **Let auto-trigger work:** Just start coding, context loads automatically
+2. **Use checkpoints liberally:** Each feature completion = checkpoint
+3. **Be specific in completions:** "Built auth" → "Built JWT auth with refresh token rotation"
+4. **Document decisions:** Include WHY and what alternatives were rejected
+5. **Track blocker time:** Helps identify patterns
+6. **Write notes for "future you":** What would help in a month?
 
 ### For Timeline Management
 
@@ -399,23 +509,28 @@ automation_status:
 3. **Start conservative:** $2-3 budget, increase with confidence
 4. **Use --disable-commits first:** Test behavior before real commits
 
+### For Checkpoints
+
+1. **One feature = one checkpoint:** Don't bundle unrelated changes
+2. **Note decisions at checkpoint:** Capture reasoning while fresh
+3. **Update files list:** Accurate file tracking improves insights
+4. **Don't over-checkpoint:** 3-5 per multi-hour session is typical
+
 ---
 
-## Migration from v1
+## Migration from v2
 
-If upgrading from v1 (snapshot-only):
+If upgrading from v2:
 
-**AI will detect v1 format and offer migration:**
+**AI will detect v2 format and enhance:**
 
-1. Backs up v1 file: `devbridge-context-v1-backup.md`
-2. Creates v2 structure:
-   - Moves current fields to "Current State"
-   - Creates "Timeline" with single entry from last save
-   - Initializes "Insights" section
-3. Preserves all existing data
-4. Future saves append to timeline
+1. Backs up v2 file: `devbridge-context-v2-backup.md`
+2. Adds checkpoint structure to schema
+3. Adds checkpoint count to insights
+4. Future saves support checkpoint entries
+5. Preserves all existing data
 
-**No data loss. Fully backward compatible.**
+**No data loss. Fully backward compatible with v2 and v1.**
 
 ---
 
@@ -458,22 +573,26 @@ This ensures automation follows established patterns.
 
 ## Advanced Features
 
-### Multi-Project Support (Future)
+### Multi-Project Detection (v3)
 
-Commands planned:
-- `context: list` - Show all tracked projects
-- `context: switch <n>` - Change active project
-- `context: compare` - Cross-project status
+AI maintains internal cache of active projects:
+- When file paths match known projects, context auto-loads
+- User can say "switch to [project]" to change active context
+- Simultaneous work on multiple projects is tracked separately
 
-### Notion Sync (Future)
+### Smart Checkpoint Prompts (v3)
 
-Command planned:
-- `context: sync-notion` - Create/update Notion page with timeline
+AI watches for completion signals:
+- "that works", "looks good", "feature done"
+- Successful test runs
+- File modifications followed by user satisfaction
+- Offers checkpoint without interrupting flow
 
 ### Analytics (Current)
 
 `context: insights` computes:
 - Velocity trends
+- Checkpoint patterns (indicates development pace)
 - Blocker patterns
 - Hot file analysis
 - Automation ROI
@@ -481,28 +600,71 @@ Command planned:
 
 ---
 
-## Triggers
+## Examples
 
-This skill activates on:
-- Explicit commands: "context: start", "context: save", etc.
-- Questions about project state: "where are we?", "what's next?"
-- Session handoffs: "continue from last time"
-- Automation setup: "automate this task"
+### Example 1: Auto-Start
 
-Does NOT auto-activate on:
-- General coding questions
-- File operations without context commands
-- New conversations without project context reference
+**User:** "I need to add OAuth support to the anchor-loop project"
+
+**Claude:** 
+```
+📊 Anchor Loop • in_progress • Last: 2 days ago
+✅ Last completed: Set up Supabase auth hooks
+🎯 Next: Add OAuth provider configuration
+
+Starting OAuth implementation...
+```
+
+### Example 2: Mid-Session Checkpoint
+
+**User:** "Okay, Google OAuth is working now"
+
+**Claude:**
+```
+Nice! Should I checkpoint this? 
+[Yes/No/Continue]
+```
+
+**User:** "Yes"
+
+**Claude:**
+```
+What files did you modify for Google OAuth?
+
+[User provides list]
+
+✅ Checkpoint saved: Google OAuth provider configured
+Session continues. Next: Add Microsoft provider?
+```
+
+### Example 3: Session End with Multiple Features
+
+**User:** "context: save"
+
+**Claude:**
+```
+This session had 3 checkpoints:
+1. Google OAuth configured
+2. Microsoft OAuth added
+3. Auth UI updated
+
+Overall, what was the main accomplishment?
+
+[Continue with standard save interview...]
+```
 
 ---
 
 ## Notes
 
-- Timeline is append-only (never overwrites history)
+- Auto-triggers reduce friction in development workflow
+- Timeline remains append-only (never overwrites history)
+- Checkpoints enable fine-grained progress tracking
 - Current State section always shows latest snapshot
-- Insights are computed automatically on each save
+- Insights now include checkpoint velocity metrics
 - Schema is strict to prevent token bloat
 - All timestamps are ISO 8601 UTC
 - File is Git-friendly markdown
 - Compatible with continuous-claude automation
 - Designed for token efficiency despite rich context
+- v3 maintains full backward compatibility with v1 and v2
