@@ -9,20 +9,20 @@
 
 ## Current State
 
-**Status:** ready_for_release  
+**Status:** released  
 **Version:** v3.1  
-**Branch:** v3-timeline (4 commits ahead of main)
+**Branch:** main (synced with origin)
 
 **Last Completed (Session 3 - Nov 17, 2025):**
-- Implemented tiered status display (#3 from roadmap)
-- Added minimal default view and --full flag for complete status
-- Session recovered successfully after network crash
-- Context file itself successfully tracked this work (dogfooding validated!)
+- v3.1 released to main via PR #3 and PR #4
+- All 5 commits from v3-timeline merged successfully
+- Context file preserved through merge and now tracks from main branch
+- Dogfooding feature validated through crash recovery
 
 **Next Priority:**
-- Merge v3-timeline → main to release v3.1
-- Then tackle #2 (Checkpoint UX Improvements) in v3.2
-- Consider adding remaining features (#4-7) based on user feedback
+- Begin v3.2 development focusing on #2 (Checkpoint UX Improvements)
+- Consider user feedback on released features
+- Remaining roadmap items (#4-7) prioritized based on adoption
 
 ---
 
